@@ -4,6 +4,11 @@
 #include <stdint.h>
 #include <string>
 
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rand.h>
+
 #include "log/log_signer.h"
 #include "log/test_signer.h"
 #include "proto/cert_serializer.h"
@@ -229,6 +234,54 @@ TEST_F(LogSignerTest, SignAndVerifySTH) {
                                             default_sth.sha256_root_hash(),
                                             default_serialized_sig));
 }
+
+const char kTestdataEcP256PrivateKey[] =
+"-----BEGIN EC PRIVATE KEY-----\n"
+"MHcCAQEEIFLw4uhuCruGKjrS9MoNeXFbypqZe+Sgh+EL1gnRn1d4oAoGCCqGSM49\n"
+"AwEHoUQDQgAEmXg8sUUzwBYaWrRb+V0IopzQ6o3UyEJ04r5ZrRXGdpYM8K+hB0pX\n"
+"rGRLI0eeWz+3skXrS0IO83AhA3GpRL6s6w==\n"
+"-----END EC PRIVATE KEY-----\n";
+
+EVP_PKEY* PrivateKeyFromPem(const string& pemkey) {
+  // BIO_new_mem_buf is read-only.
+  cert_trans::ScopedBIO bio(
+      BIO_new_mem_buf(const_cast<char*>(pemkey.data()), pemkey.size()));
+  EVP_PKEY* pkey = PEM_read_bio_PrivateKey(bio.get(), NULL, NULL, NULL);
+  CHECK_NOTNULL(pkey);
+  return pkey;
+}
+
+const char kKeyID[] =
+    "df1c2ec11500945247a96168325ddc5c7959e8f7c6d388fc002e0bbd3f74d764";
+
+const char kDefaultRootHash[] =
+    "18041bd4665083001fba8c5411d2d748e8abbfdcdfd9218cb02b68a78e7d4c23";
+
+TEST_F(LogSignerTest, SignAndVerifySTHWithMyTimestamp) {
+  SignedTreeHead sth;
+  sth.clear_signature();
+  sth.set_version(ct::V1);
+  sth.mutable_id()->set_key_id(util::BinaryString(kKeyID));
+
+  sth.set_timestamp(1348589665525LL);
+  sth.set_tree_size(12);
+  sth.set_sha256_root_hash(util::BinaryString(kDefaultRootHash));
+
+  ASSERT_FALSE(sth.has_signature());
+
+  EVP_PKEY* pkey = PrivateKeyFromPem(kTestdataEcP256PrivateKey);
+  CHECK_NOTNULL(pkey);
+  LogSigner* signer = new LogSigner(pkey);
+
+  EXPECT_EQ(LogSigner::OK, signer->SignTreeHead(&sth));
+  EXPECT_TRUE(sth.has_signature());
+
+  std::string sig;
+  Serializer::SerializeDigitallySigned(sth.signature(), &sig);
+  std::cout << "STH signature:" << util::HexString(sig);
+  delete signer;
+}
+
 
 TEST_F(LogSignerTest, SignAndVerifyCertSCTApiCrossCheck) {
   LogEntry default_entry;
