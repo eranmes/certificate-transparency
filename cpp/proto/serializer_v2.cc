@@ -11,6 +11,10 @@
 #include <openssl/asn1.h>
 #endif
 
+#if defined(OPENSSL_IS_BORINGSSL)
+#include <openssl/asn1.h>
+#endif
+
 namespace rfc6962_bis {
 using util::StatusOr;
 using util::Status;
