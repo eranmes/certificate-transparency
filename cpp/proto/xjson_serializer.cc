@@ -62,16 +62,17 @@ SerializeResult SerializeV1SCTSignatureInput(
   if (res != SerializeResult::OK) {
     return res;
   }
-  TLSSerializer serializer;
-  serializer.WriteUint(ct::V1, Serializer::kVersionLengthInBytes);
-  serializer.WriteUint(ct::CERTIFICATE_TIMESTAMP,
-                       Serializer::kSignatureTypeLengthInBytes);
-  serializer.WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes);
-  serializer.WriteUint(ct::X_JSON_ENTRY,
-                       Serializer::kLogEntryTypeLengthInBytes);
-  serializer.WriteVarBytes(json, kMaxJsonLength);
-  serializer.WriteVarBytes(extensions, Serializer::kMaxExtensionsLength);
-  result->assign(serializer.SerializedString());
+  serialization::WriteUint(ct::V1, Serializer::kVersionLengthInBytes, result);
+  serialization::WriteUint(ct::CERTIFICATE_TIMESTAMP,
+                       Serializer::kSignatureTypeLengthInBytes, result);
+  serialization::WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes,
+                           result);
+  serialization::WriteUint(ct::X_JSON_ENTRY,
+                       Serializer::kLogEntryTypeLengthInBytes,
+                       result);
+  serialization::WriteVarBytes(json, kMaxJsonLength, result);
+  serialization::WriteVarBytes(extensions, Serializer::kMaxExtensionsLength,
+                               result);
   return SerializeResult::OK;
 }
 
@@ -93,16 +94,18 @@ SerializeResult SerializeV1SCTMerkleTreeLeaf(
   if (res != SerializeResult::OK) {
     return res;
   }
-  TLSSerializer serializer;
-  serializer.WriteUint(ct::V1, Serializer::kVersionLengthInBytes);
-  serializer.WriteUint(ct::TIMESTAMPED_ENTRY,
-                       Serializer::kMerkleLeafTypeLengthInBytes);
-  serializer.WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes);
-  serializer.WriteUint(ct::X_JSON_ENTRY,
-                       Serializer::kLogEntryTypeLengthInBytes);
-  serializer.WriteVarBytes(json, kMaxJsonLength);
-  serializer.WriteVarBytes(extensions, Serializer::kMaxExtensionsLength);
-  result->assign(serializer.SerializedString());
+  serialization::WriteUint(ct::V1, Serializer::kVersionLengthInBytes, result);
+  serialization::WriteUint(ct::TIMESTAMPED_ENTRY,
+                       Serializer::kMerkleLeafTypeLengthInBytes,
+                       result);
+  serialization::WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes,
+                           result);
+  serialization::WriteUint(ct::X_JSON_ENTRY,
+                       Serializer::kLogEntryTypeLengthInBytes,
+                       result);
+  serialization::WriteVarBytes(json, kMaxJsonLength, result);
+  serialization::WriteVarBytes(extensions, Serializer::kMaxExtensionsLength,
+                               result);
   return SerializeResult::OK;
 }
 

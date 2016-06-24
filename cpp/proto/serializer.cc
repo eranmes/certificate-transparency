@@ -216,10 +216,13 @@ SerializeResult WriteSCTV1(
   if (sct.id().key_id().size() != Serializer::kKeyIDLengthInBytes) {
     return SerializeResult::INVALID_KEYID_LENGTH;
   }
-  serialization::WriteUint(sct.version(), Serializer::kVersionLengthInBytes, output);
+  serialization::WriteUint(sct.version(), Serializer::kVersionLengthInBytes,
+                           output);
   serialization::WriteFixedBytes(sct.id().key_id(), output);
-  serialization::WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes, output);
-  serialization::WriteVarBytes(sct.extensions(), Serializer::kMaxExtensionsLength, output);
+  serialization::WriteUint(
+      sct.timestamp(), Serializer::kTimestampLengthInBytes, output);
+  serialization::WriteVarBytes(
+      sct.extensions(), Serializer::kMaxExtensionsLength, output);
   return serialization::WriteDigitallySigned(sct.signature(), output);
 }
 
@@ -244,9 +247,11 @@ SerializeResult WriteSCTV2(
   if (sct.id().key_id().size() != Serializer::kKeyIDLengthInBytes) {
     return SerializeResult::INVALID_KEYID_LENGTH;
   }
-  serialization::WriteUint(sct.version(), Serializer::kVersionLengthInBytes, output);
+  serialization::WriteUint(sct.version(), Serializer::kVersionLengthInBytes,
+                           output);
   serialization::WriteFixedBytes(sct.id().key_id(), output);
-  serialization::WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes, output);
+  serialization::WriteUint(
+      sct.timestamp(), Serializer::kTimestampLengthInBytes, output);
   // V2 SCT can have a number of extensions. They must be ordered by type
   // but we already checked that above.
   WriteSctExtension(sct.sct_extension(), output);
@@ -256,23 +261,22 @@ SerializeResult WriteSCTV2(
 // static
 SerializeResult Serializer::SerializeSCT(const SignedCertificateTimestamp& sct,
                                          string* result) {
-  std::string output;
   SerializeResult res = SerializeResult::UNSUPPORTED_VERSION;
 
   switch (sct.version()) {
     case ct::V1:
-      res = WriteSCTV1(sct, &output);
+      res = WriteSCTV1(sct, result);
       break;
     case ct::V2:
-      res = WriteSCTV2(sct, &output);
+      res = WriteSCTV2(sct, result);
       break;
     default:
       res = SerializeResult::UNSUPPORTED_VERSION;
   }
   if (res != SerializeResult::OK) {
+    result->clear();
     return res;
   }
-  result->assign(output);
   return SerializeResult::OK;
 }
 
