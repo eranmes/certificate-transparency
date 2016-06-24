@@ -74,15 +74,13 @@ SerializeResult SerializeV1CertSCTSignatureInput(uint64_t timestamp,
   if (res != SerializeResult::OK) {
     return res;
   }
-  TLSSerializer serializer;
-  serializer.WriteUint(ct::V1, Serializer::kVersionLengthInBytes);
-  serializer.WriteUint(ct::CERTIFICATE_TIMESTAMP,
-                       Serializer::kSignatureTypeLengthInBytes);
-  serializer.WriteUint(timestamp, Serializer::kTimestampLengthInBytes);
-  serializer.WriteUint(ct::X509_ENTRY, Serializer::kLogEntryTypeLengthInBytes);
-  serializer.WriteVarBytes(certificate, kMaxCertificateLength);
-  serializer.WriteVarBytes(extensions, Serializer::kMaxExtensionsLength);
-  result->assign(serializer.SerializedString());
+  serialization::WriteUint(ct::V1, Serializer::kVersionLengthInBytes, result);
+  serialization::WriteUint(ct::CERTIFICATE_TIMESTAMP,
+                       Serializer::kSignatureTypeLengthInBytes, result);
+  serialization::WriteUint(timestamp, Serializer::kTimestampLengthInBytes, result);
+  serialization::WriteUint(ct::X509_ENTRY, Serializer::kLogEntryTypeLengthInBytes, result);
+  serialization::WriteVarBytes(certificate, kMaxCertificateLength, result);
+  serialization::WriteVarBytes(extensions, Serializer::kMaxExtensionsLength, result);
   return SerializeResult::OK;
 }
 

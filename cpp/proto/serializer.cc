@@ -142,22 +142,23 @@ static SerializeResult SerializeV2STHSignatureInput(
   if (log_id.size() != Serializer::kKeyIDLengthInBytes) {
     return SerializeResult::INVALID_KEYID_LENGTH;
   }
-  TLSSerializer serializer;
-  serializer.WriteUint(ct::V2, Serializer::kVersionLengthInBytes);
-  serializer.WriteUint(ct::TREE_HEAD, Serializer::kSignatureTypeLengthInBytes);
-  serializer.WriteFixedBytes(log_id);
-  serializer.WriteUint(timestamp, Serializer::kTimestampLengthInBytes);
-  serializer.WriteUint(tree_size, 8);
-  serializer.WriteFixedBytes(root_hash);
+
+  serialization::WriteUint(ct::V2, Serializer::kVersionLengthInBytes, result);
+  serialization::WriteUint(ct::TREE_HEAD, Serializer::kSignatureTypeLengthInBytes, result);
+  //TODO(eranm): This is wrong, V2 Log IDs are OIDs.
+  serialization::WriteFixedBytes(log_id, result);
+  serialization::WriteUint(timestamp, Serializer::kTimestampLengthInBytes, result);
+  serialization::WriteUint(tree_size, 8, result);
+  serialization::WriteFixedBytes(root_hash, result);
   // V2 STH can have multiple extensions
-  serializer.WriteUint(sth_extension.size(), 2);
+  serialization::WriteUint(sth_extension.size(), 2, result);
   for (auto it = sth_extension.begin(); it != sth_extension.end(); ++it) {
-    serializer.WriteUint(it->sth_extension_type(), 2);
-    serializer.WriteVarBytes(it->sth_extension_data(),
-                             Serializer::kMaxExtensionsLength);
+    serialization::WriteUint(it->sth_extension_type(), 2, result);
+    serialization::WriteVarBytes(it->sth_extension_data(),
+                             Serializer::kMaxExtensionsLength,
+                             result);
   }
 
-  result->assign(serializer.SerializedString());
   return SerializeResult::OK;
 }
 
