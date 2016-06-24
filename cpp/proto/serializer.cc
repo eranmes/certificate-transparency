@@ -297,21 +297,6 @@ SerializeResult Serializer::SerializeDigitallySigned(
   return serialization::WriteDigitallySigned(sig, result);
 }
 
-void TLSSerializer::WriteFixedBytes(const string& in) {
-  serialization::WriteFixedBytes(in, &output_);
-}
-
-void TLSSerializer::WriteVarBytes(const string& in, size_t max_length) {
-  serialization::WriteVarBytes(in, max_length, &output_);
-}
-
-// This does not enforce extension ordering, which must be done separately.
-void TLSSerializer::WriteSctExtension(
-    const RepeatedPtrField<SctExtension>& extension) {
-  ::WriteSctExtension(extension, &output_);
-}
-
-
 size_t SerializedListLength(const repeated_string& in, size_t max_elem_length,
                             size_t max_total_length) {
   size_t elem_prefix_length = PrefixLength(max_elem_length);
@@ -368,18 +353,6 @@ SerializeResult WriteList(const repeated_string& in,
     serialization::WriteVarBytes(in.Get(i), max_elem_length, output);
   return SerializeResult::OK;
 }
-
-SerializeResult TLSSerializer::WriteList(const repeated_string& in,
-                                         size_t max_elem_length,
-                                         size_t max_total_length) {
-  return ::WriteList(in, max_elem_length, max_total_length, &output_);
-}
-
-SerializeResult TLSSerializer::WriteDigitallySigned(
-    const DigitallySigned& sig) {
-  return serialization::WriteDigitallySigned(sig, &output_);
-}
-
 
 SerializeResult CheckKeyHashFormat(const string& key_hash) {
   if (key_hash.size() != Serializer::kKeyHashLengthInBytes)

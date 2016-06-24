@@ -40,40 +40,6 @@ SerializeResult WriteList(const repeated_string& in, size_t max_elem_length,
 SerializeResult WriteDigitallySigned(const ct::DigitallySigned& sig,
                                      std::string* output);
 
-// TODO(pphaneuf): Make this into normal functions in a namespace.
-class TLSSerializer {
- public:
-  // returns binary data
-  std::string SerializedString() const {
-    return output_;
-  }
-
-  SerializeResult WriteList(const repeated_string& in, size_t max_elem_length,
-                            size_t max_total_length);
-
-  SerializeResult WriteDigitallySigned(const ct::DigitallySigned& sig);
-
-  void WriteSctExtension(const repeated_sct_extension& extension);
-
-  template <class T>
-      void WriteUint(T in, size_t bytes) {
-        serialization::WriteUint<T>(in, bytes, &output_);
-      }
-  //TODO(eranm): DELETE FROM HERE
-  // Fixed-length byte array.
-  void WriteFixedBytes(const std::string& in);
-
-  //TODO(eranm): DELETE FROM HERE
-  // Variable-length byte array.
-  // Caller is responsible for checking |in| <= max_length
-  // TODO(ekasper): could return a bool instead.
-  void WriteVarBytes(const std::string& in, size_t max_length);
-
- private:
-  std::string output_;
-};
-
-
 class TLSDeserializer {
  public:
   // We do not make a copy, so input must remain valid.
