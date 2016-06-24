@@ -21,6 +21,7 @@ using ct::SctExtension;
 using ct::Version_IsValid;
 using ct::X509ChainEntry;
 using google::protobuf::RepeatedPtrField;
+using serialization::internal::PrefixLength;
 using std::function;
 using std::string;
 
@@ -80,13 +81,6 @@ function<DeserializeResult(TLSDeserializer* d, ct::MerkleTreeLeaf* leaf)>
 
 
 }  // namespace
-
-
-// Returns the number of bytes needed to store a value up to max_length.
-size_t PrefixLength(size_t max_length) {
-  CHECK_GT(max_length, 0U);
-  return ceil(log2(max_length) / float(8));
-}
 
 
 // static
@@ -294,15 +288,11 @@ SerializeResult Serializer::SerializeDigitallySigned(
 }
 
 void TLSSerializer::WriteFixedBytes(const string& in) {
-  output_.append(in);
+  serialization::WriteFixedBytes(in, &output_);
 }
 
 void TLSSerializer::WriteVarBytes(const string& in, size_t max_length) {
-  CHECK_LE(in.size(), max_length);
-
-  size_t prefix_length = PrefixLength(max_length);
-  WriteUint(in.size(), prefix_length);
-  WriteFixedBytes(in);
+  serialization::WriteVarBytes(in, max_length, &output_);
 }
 
 // This does not enforce extension ordering, which must be done separately.

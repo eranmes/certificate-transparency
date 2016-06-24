@@ -1,6 +1,7 @@
 /* -*- indent-tabs-mode: nil -*- */
 #include "proto/serializer_base.h"
 
+#include <math.h>
 #include <ostream>
 #include <string>
 
@@ -84,5 +85,23 @@ std::ostream& operator<<(std::ostream& stream, const DeserializeResult& r) {
 void WriteFixedBytes(const std::string& in, std::string* output) {
   output->append(in);
 }
+
+void WriteVarBytes(const std::string& in, size_t max_length,
+                   std::string* output) {
+  CHECK_LE(in.size(), max_length);
+
+  size_t prefix_length = internal::PrefixLength(max_length);
+  WriteUint(in.size(), prefix_length, output);
+  WriteFixedBytes(in, output);
+}
+
+namespace internal {
+
+size_t PrefixLength(size_t max_length) {
+  CHECK_GT(max_length, 0U);
+  return ceil(log2(max_length) / float(8));
+}
+
+}  // namespace internal
 
 }  // namespace serialization

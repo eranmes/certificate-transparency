@@ -62,14 +62,18 @@ template <class T> void WriteUint(T in, size_t bytes, std::string* output) {
 // Fixed-length byte array.
 void WriteFixedBytes(const std::string& in, std::string* output);
 
-/*
 // Variable-length byte array.
 // Caller is responsible for checking |in| <= max_length
 // TODO(ekasper): could return a bool instead.
-void WriteVarBytes(const std::string& in, size_t max_length);
+void WriteVarBytes(const std::string& in, size_t max_length,
+                   std::string* output);
 
-void WriteSctExtension(const repeated_sct_extension& extension);
-*/
+namespace internal {
+
+// Returns the number of bytes needed to store a value up to max_length.
+size_t PrefixLength(size_t max_length);
+
+}  // namespace internal
 
 }  // namespace serializer
 
