@@ -8,53 +8,11 @@
 #include <string>
 
 #include "base/macros.h"
+#include "proto/serializer_base.h"
 #include "proto/ct.pb.h"
 
-
-// Serialization methods return OK on success,
-// or the first encountered error on failure.
-enum class SerializeResult {
-  OK,
-  INVALID_ENTRY_TYPE,
-  EMPTY_CERTIFICATE,
-  // TODO(alcutter): rename these to LEAFDATA_TOO_LONG or similar?
-  CERTIFICATE_TOO_LONG,
-  CERTIFICATE_CHAIN_TOO_LONG,
-  INVALID_HASH_ALGORITHM,
-  INVALID_SIGNATURE_ALGORITHM,
-  SIGNATURE_TOO_LONG,
-  INVALID_HASH_LENGTH,
-  EMPTY_PRECERTIFICATE_CHAIN,
-  UNSUPPORTED_VERSION,
-  EXTENSIONS_TOO_LONG,
-  INVALID_KEYID_LENGTH,
-  EMPTY_LIST,
-  EMPTY_ELEM_IN_LIST,
-  LIST_ELEM_TOO_LONG,
-  LIST_TOO_LONG,
-  EXTENSIONS_NOT_ORDERED,
-};
-
-std::ostream& operator<<(std::ostream& stream, const SerializeResult& r);
-
-
-enum class DeserializeResult {
-  OK,
-  INPUT_TOO_SHORT,
-  INVALID_HASH_ALGORITHM,
-  INVALID_SIGNATURE_ALGORITHM,
-  INPUT_TOO_LONG,
-  UNSUPPORTED_VERSION,
-  INVALID_LIST_ENCODING,
-  EMPTY_LIST,
-  EMPTY_ELEM_IN_LIST,
-  UNKNOWN_LEAF_TYPE,
-  UNKNOWN_LOGENTRY_TYPE,
-  EXTENSIONS_TOO_LONG,
-  EXTENSIONS_NOT_ORDERED,
-};
-
-std::ostream& operator<<(std::ostream& stream, const DeserializeResult& r);
+using serialization::SerializeResult;
+using serialization::DeserializeResult;
 
 typedef google::protobuf::RepeatedPtrField<std::string> repeated_string;
 typedef google::protobuf::RepeatedPtrField<ct::SthExtension>
@@ -84,24 +42,21 @@ class TLSSerializer {
 
   SerializeResult WriteDigitallySigned(const ct::DigitallySigned& sig);
 
-
   template <class T>
-  void WriteUint(T in, size_t bytes) {
-    CHECK_LE(bytes, sizeof(in));
-    CHECK(bytes == sizeof(in) || in >> (bytes * 8) == 0);
-    for (; bytes > 0; --bytes)
-      output_.push_back(((in & (static_cast<T>(0xff) << ((bytes - 1) * 8))) >>
-                         ((bytes - 1) * 8)));
-  }
-
+      void WriteUint(T in, size_t bytes) {
+        serialization::WriteUint<T>(in, bytes, &output_);
+      }
+  //TODO(eranm): DELETE FROM HERE
   // Fixed-length byte array.
   void WriteFixedBytes(const std::string& in);
 
+  //TODO(eranm): DELETE FROM HERE
   // Variable-length byte array.
   // Caller is responsible for checking |in| <= max_length
   // TODO(ekasper): could return a bool instead.
   void WriteVarBytes(const std::string& in, size_t max_length);
 
+  //TODO(eranm): DELETE FROM HERE
   void WriteSctExtension(const repeated_sct_extension& extension);
 
  private:
@@ -249,9 +204,9 @@ class Serializer {
   // TODO(ekasper): tests for these!
   template <class T>
   static std::string SerializeUint(T in, size_t bytes = sizeof(T)) {
-    TLSSerializer serializer;
-    serializer.WriteUint(in, bytes);
-    return serializer.SerializedString();
+    std::string out;
+    serialization::WriteUint(in, bytes, &out);
+    return out;
   }
 
  private:
