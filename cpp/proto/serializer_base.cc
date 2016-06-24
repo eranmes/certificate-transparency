@@ -5,7 +5,25 @@
 #include <ostream>
 #include <string>
 
+using ct::DigitallySigned;
+
 namespace serialization {
+
+namespace {
+
+SerializeResult CheckSignatureFormat(const DigitallySigned& sig) {
+  // This is just DCHECKED upon setting, so check again.
+  if (!DigitallySigned_HashAlgorithm_IsValid(sig.hash_algorithm()))
+    return SerializeResult::INVALID_HASH_ALGORITHM;
+  if (!DigitallySigned_SignatureAlgorithm_IsValid(sig.sig_algorithm()))
+    return SerializeResult::INVALID_SIGNATURE_ALGORITHM;
+  if (sig.signature().size() > constants::kMaxSignatureLength)
+    return SerializeResult::SIGNATURE_TOO_LONG;
+  return SerializeResult::OK;
+}
+
+}  // namespace
+
 
 std::ostream& operator<<(std::ostream& stream, const SerializeResult& r) {
   switch (r) {
@@ -93,6 +111,20 @@ void WriteVarBytes(const std::string& in, size_t max_length,
   size_t prefix_length = internal::PrefixLength(max_length);
   WriteUint(in.size(), prefix_length, output);
   WriteFixedBytes(in, output);
+}
+
+SerializeResult WriteDigitallySigned(
+    const DigitallySigned& sig, std::string* output) {
+  SerializeResult res = CheckSignatureFormat(sig);
+  if (res != SerializeResult::OK)
+    return res;
+  WriteUint(sig.hash_algorithm(), constants::kHashAlgorithmLengthInBytes,
+            output);
+  WriteUint(sig.sig_algorithm(), constants::kSigAlgorithmLengthInBytes,
+            output);
+  WriteVarBytes(sig.signature(), constants::kMaxSignatureLength,
+                output);
+  return SerializeResult::OK;
 }
 
 namespace internal {

@@ -4,6 +4,8 @@
 #include <glog/logging.h>
 #include <string>
 
+#include "proto/ct.pb.h"
+
 namespace serialization {
 
 // Serialization methods return OK on success,
@@ -51,6 +53,9 @@ enum class DeserializeResult {
 
 std::ostream& operator<<(std::ostream& stream, const DeserializeResult& r);
 
+///////////////////////////////////////////////////////////////////////////////
+// Basic serialization functions.                                            //
+///////////////////////////////////////////////////////////////////////////////
 template <class T> void WriteUint(T in, size_t bytes, std::string* output) {
   CHECK_LE(bytes, sizeof(in));
   CHECK(bytes == sizeof(in) || in >> (bytes * 8) == 0);
@@ -67,6 +72,15 @@ void WriteFixedBytes(const std::string& in, std::string* output);
 // TODO(ekasper): could return a bool instead.
 void WriteVarBytes(const std::string& in, size_t max_length,
                    std::string* output);
+
+SerializeResult WriteDigitallySigned(const ct::DigitallySigned& sig,
+                                     std::string* output);
+
+namespace constants {
+static const size_t kMaxSignatureLength = (1 << 16) - 1;
+static const size_t kHashAlgorithmLengthInBytes = 1;
+static const size_t kSigAlgorithmLengthInBytes = 1;
+}  // namespace constants
 
 namespace internal {
 

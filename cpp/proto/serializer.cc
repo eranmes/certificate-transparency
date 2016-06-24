@@ -48,7 +48,6 @@ DEFINE_bool(allow_reconfigure_serializer_test_only, false,
 // TODO(pphaneuf): This is just to avoid causing diff churn while
 // refactoring. Functions for internal use only should be put together
 // in an anonymous namespace.
-SerializeResult CheckSignatureFormat(const DigitallySigned& sig);
 SerializeResult CheckSthExtensionsFormat(
     const repeated_sth_extension& extension);
 
@@ -278,13 +277,7 @@ SerializeResult Serializer::SerializeSCTList(
 // static
 SerializeResult Serializer::SerializeDigitallySigned(
     const DigitallySigned& sig, string* result) {
-  TLSSerializer serializer;
-  SerializeResult res = serializer.WriteDigitallySigned(sig);
-  if (res != SerializeResult::OK) {
-    return res;
-  }
-  result->assign(serializer.SerializedString());
-  return SerializeResult::OK;
+  return serialization::WriteDigitallySigned(sig, result);
 }
 
 void TLSSerializer::WriteFixedBytes(const string& in) {
@@ -364,31 +357,13 @@ SerializeResult TLSSerializer::WriteList(const repeated_string& in,
 
 SerializeResult TLSSerializer::WriteDigitallySigned(
     const DigitallySigned& sig) {
-  SerializeResult res = CheckSignatureFormat(sig);
-  if (res != SerializeResult::OK)
-    return res;
-  WriteUint(sig.hash_algorithm(), Serializer::kHashAlgorithmLengthInBytes);
-  WriteUint(sig.sig_algorithm(), Serializer::kSigAlgorithmLengthInBytes);
-  WriteVarBytes(sig.signature(), Serializer::kMaxSignatureLength);
-  return SerializeResult::OK;
+  return serialization::WriteDigitallySigned(sig, &output_);
 }
 
 
 SerializeResult CheckKeyHashFormat(const string& key_hash) {
   if (key_hash.size() != Serializer::kKeyHashLengthInBytes)
     return SerializeResult::INVALID_HASH_LENGTH;
-  return SerializeResult::OK;
-}
-
-
-SerializeResult CheckSignatureFormat(const DigitallySigned& sig) {
-  // This is just DCHECKED upon setting, so check again.
-  if (!DigitallySigned_HashAlgorithm_IsValid(sig.hash_algorithm()))
-    return SerializeResult::INVALID_HASH_ALGORITHM;
-  if (!DigitallySigned_SignatureAlgorithm_IsValid(sig.sig_algorithm()))
-    return SerializeResult::INVALID_SIGNATURE_ALGORITHM;
-  if (sig.signature().size() > Serializer::kMaxSignatureLength)
-    return SerializeResult::SIGNATURE_TOO_LONG;
   return SerializeResult::OK;
 }
 
