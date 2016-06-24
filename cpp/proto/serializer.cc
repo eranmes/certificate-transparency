@@ -331,19 +331,20 @@ SerializeResult Serializer::SerializeList(const repeated_string& in,
                                           size_t max_elem_length,
                                           size_t max_total_length,
                                           string* result) {
-  TLSSerializer serializer;
+  std::string output;
   SerializeResult res =
-      serializer.WriteList(in, max_elem_length, max_total_length);
+      ::WriteList(in, max_elem_length, max_total_length, &output);
   if (res != SerializeResult::OK)
     return res;
-  result->assign(serializer.SerializedString());
+  result->assign(output);
   return SerializeResult::OK;
 }
 
 
-SerializeResult TLSSerializer::WriteList(const repeated_string& in,
-                                         size_t max_elem_length,
-                                         size_t max_total_length) {
+SerializeResult WriteList(const repeated_string& in,
+                          size_t max_elem_length,
+                          size_t max_total_length,
+                          std::string* output) {
   for (int i = 0; i < in.size(); ++i) {
     if (in.Get(i).empty())
       return SerializeResult::EMPTY_ELEM_IN_LIST;
@@ -356,11 +357,17 @@ SerializeResult TLSSerializer::WriteList(const repeated_string& in,
   size_t prefix_length = PrefixLength(max_total_length);
   CHECK_GE(length, prefix_length);
 
-  WriteUint(length - prefix_length, prefix_length);
+  serialization::WriteUint(length - prefix_length, prefix_length, output);
 
   for (int i = 0; i < in.size(); ++i)
-    WriteVarBytes(in.Get(i), max_elem_length);
+    serialization::WriteVarBytes(in.Get(i), max_elem_length, output);
   return SerializeResult::OK;
+}
+
+SerializeResult TLSSerializer::WriteList(const repeated_string& in,
+                                         size_t max_elem_length,
+                                         size_t max_total_length) {
+  return ::WriteList(in, max_elem_length, max_total_length, &output_);
 }
 
 SerializeResult TLSSerializer::WriteDigitallySigned(

@@ -34,6 +34,12 @@ SerializeResult WriteSCTV2(
 void WriteSctExtension(
     const repeated_sct_extension& extension, std::string* output);
 
+SerializeResult WriteList(const repeated_string& in, size_t max_elem_length,
+                          size_t max_total_length, std::string* output);
+
+SerializeResult WriteDigitallySigned(const ct::DigitallySigned& sig,
+                                     std::string* output);
+
 // TODO(pphaneuf): Make this into normal functions in a namespace.
 class TLSSerializer {
  public:
