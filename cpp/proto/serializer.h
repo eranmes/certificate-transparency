@@ -25,6 +25,15 @@ SerializeResult CheckKeyHashFormat(const std::string& key_hash);
 SerializeResult CheckSctExtensionsFormat(
     const repeated_sct_extension& extension);
 
+SerializeResult WriteSCTV1(
+    const ct::SignedCertificateTimestamp& sct, std::string* output);
+
+SerializeResult WriteSCTV2(
+    const ct::SignedCertificateTimestamp& sct, std::string* output);
+
+void WriteSctExtension(
+    const repeated_sct_extension& extension, std::string* output);
+
 // TODO(pphaneuf): Make this into normal functions in a namespace.
 class TLSSerializer {
  public:
@@ -33,14 +42,12 @@ class TLSSerializer {
     return output_;
   }
 
-  SerializeResult WriteSCTV1(const ct::SignedCertificateTimestamp& sct);
-
-  SerializeResult WriteSCTV2(const ct::SignedCertificateTimestamp& sct);
-
   SerializeResult WriteList(const repeated_string& in, size_t max_elem_length,
                             size_t max_total_length);
 
   SerializeResult WriteDigitallySigned(const ct::DigitallySigned& sig);
+
+  void WriteSctExtension(const repeated_sct_extension& extension);
 
   template <class T>
       void WriteUint(T in, size_t bytes) {
@@ -55,9 +62,6 @@ class TLSSerializer {
   // Caller is responsible for checking |in| <= max_length
   // TODO(ekasper): could return a bool instead.
   void WriteVarBytes(const std::string& in, size_t max_length);
-
-  //TODO(eranm): DELETE FROM HERE
-  void WriteSctExtension(const repeated_sct_extension& extension);
 
  private:
   std::string output_;

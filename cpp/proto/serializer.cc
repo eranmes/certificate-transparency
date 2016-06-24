@@ -204,8 +204,9 @@ SerializeResult Serializer::SerializeSCTSignatureInput(
 }
 
 
-SerializeResult TLSSerializer::WriteSCTV1(
-    const SignedCertificateTimestamp& sct) {
+SerializeResult WriteSCTV1(
+    const SignedCertificateTimestamp& sct,
+    std::string* output) {
   CHECK(sct.version() == ct::V1);
   SerializeResult res = CheckExtensionsFormat(sct.extensions());
   if (res != SerializeResult::OK) {
@@ -214,15 +215,26 @@ SerializeResult TLSSerializer::WriteSCTV1(
   if (sct.id().key_id().size() != Serializer::kKeyIDLengthInBytes) {
     return SerializeResult::INVALID_KEYID_LENGTH;
   }
-  WriteUint(sct.version(), Serializer::kVersionLengthInBytes);
-  WriteFixedBytes(sct.id().key_id());
-  WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes);
-  WriteVarBytes(sct.extensions(), Serializer::kMaxExtensionsLength);
-  return WriteDigitallySigned(sct.signature());
+  serialization::WriteUint(sct.version(), Serializer::kVersionLengthInBytes, output);
+  serialization::WriteFixedBytes(sct.id().key_id(), output);
+  serialization::WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes, output);
+  serialization::WriteVarBytes(sct.extensions(), Serializer::kMaxExtensionsLength, output);
+  return serialization::WriteDigitallySigned(sct.signature(), output);
 }
 
-SerializeResult TLSSerializer::WriteSCTV2(
-    const SignedCertificateTimestamp& sct) {
+void WriteSctExtension(
+    const RepeatedPtrField<SctExtension>& extension,
+    std::string* output) {
+  serialization::WriteUint(extension.size(), 2, output);
+  for (auto it = extension.begin(); it != extension.end(); ++it) {
+    serialization::WriteUint(it->sct_extension_type(), 2, output);
+    serialization::WriteVarBytes(
+        it->sct_extension_data(), Serializer::kMaxExtensionsLength, output);
+  }
+}
+
+SerializeResult WriteSCTV2(
+    const SignedCertificateTimestamp& sct, std::string* output) {
   CHECK(sct.version() == ct::V2);
   SerializeResult res = CheckSctExtensionsFormat(sct.sct_extension());
   if (res != SerializeResult::OK) {
@@ -231,27 +243,27 @@ SerializeResult TLSSerializer::WriteSCTV2(
   if (sct.id().key_id().size() != Serializer::kKeyIDLengthInBytes) {
     return SerializeResult::INVALID_KEYID_LENGTH;
   }
-  WriteUint(sct.version(), Serializer::kVersionLengthInBytes);
-  WriteFixedBytes(sct.id().key_id());
-  WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes);
+  serialization::WriteUint(sct.version(), Serializer::kVersionLengthInBytes, output);
+  serialization::WriteFixedBytes(sct.id().key_id(), output);
+  serialization::WriteUint(sct.timestamp(), Serializer::kTimestampLengthInBytes, output);
   // V2 SCT can have a number of extensions. They must be ordered by type
   // but we already checked that above.
-  WriteSctExtension(sct.sct_extension());
-  return WriteDigitallySigned(sct.signature());
+  WriteSctExtension(sct.sct_extension(), output);
+  return serialization::WriteDigitallySigned(sct.signature(), output);
 }
 
 // static
 SerializeResult Serializer::SerializeSCT(const SignedCertificateTimestamp& sct,
                                          string* result) {
-  TLSSerializer serializer;
+  std::string output;
   SerializeResult res = SerializeResult::UNSUPPORTED_VERSION;
 
   switch (sct.version()) {
     case ct::V1:
-      res = serializer.WriteSCTV1(sct);
+      res = WriteSCTV1(sct, &output);
       break;
     case ct::V2:
-      res = serializer.WriteSCTV2(sct);
+      res = WriteSCTV2(sct, &output);
       break;
     default:
       res = SerializeResult::UNSUPPORTED_VERSION;
@@ -259,7 +271,7 @@ SerializeResult Serializer::SerializeSCT(const SignedCertificateTimestamp& sct,
   if (res != SerializeResult::OK) {
     return res;
   }
-  result->assign(serializer.SerializedString());
+  result->assign(output);
   return SerializeResult::OK;
 }
 
@@ -291,11 +303,7 @@ void TLSSerializer::WriteVarBytes(const string& in, size_t max_length) {
 // This does not enforce extension ordering, which must be done separately.
 void TLSSerializer::WriteSctExtension(
     const RepeatedPtrField<SctExtension>& extension) {
-  WriteUint(extension.size(), 2);
-  for (auto it = extension.begin(); it != extension.end(); ++it) {
-    WriteUint(it->sct_extension_type(), 2);
-    WriteVarBytes(it->sct_extension_data(), Serializer::kMaxExtensionsLength);
-  }
+  ::WriteSctExtension(extension, &output_);
 }
 
 
