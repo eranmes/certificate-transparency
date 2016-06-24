@@ -188,6 +188,7 @@ cpp_libcore_a_SOURCES = \
 	cpp/net/url.cc \
 	cpp/net/url_fetcher.cc \
 	cpp/proto/cert_serializer.cc \
+	cpp/proto/serializer_base.cc \
 	cpp/proto/serializer.cc \
 	cpp/server/metrics.cc \
 	cpp/server/proxy.cc \
