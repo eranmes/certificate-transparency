@@ -6,6 +6,7 @@
 
 #include <openssl/objects.h>
 
+#include "proto/serializer.h"
 #include "util/statusor.h"
 
 // RFC6962-bis (V2) stuff.
@@ -28,6 +29,17 @@ class OID {
 
   ASN1_OBJECT *oid_;
 };
+
+typedef google::protobuf::RepeatedPtrField<ct::SthExtension>
+    repeated_sth_extension;
+typedef google::protobuf::RepeatedPtrField<ct::SctExtension>
+    repeated_sct_extension;
+
+SerializeResult SerializeSCTV2ToTLS(const ct::SignedCertificateTimestampV2& sct);
+
+DeserializeResult DeserializeMerkleTreeLeafV2(ct::MerkleTreeLeaf* leaf);
+
+DeserializeResult DeserializeSCTV2(ct::SignedCertificateTimestamp* sct);
 
 }  // namespace rfc6962_bis
 
