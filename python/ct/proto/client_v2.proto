@@ -1,0 +1,36 @@
+// FIXME: many of these are also in ct.proto.
+
+syntax = "proto2";
+
+package ct_v2;
+
+import "ct/proto/client.proto";
+import "ct/proto/tls_options.proto";
+
+
+message LogIDV2 {
+  // DER-encoded OID without the tag byte.
+  optional bytes log_id = 1 [ (tls_opts).min_length = 2,
+                              (tls_opts).max_length = 0x7f];
+}
+
+enum SctExtensionType {
+  option (tls_enum_opts).max_value = 65535;
+
+  RESERVED=65535;
+}
+
+message SctExtension {
+  optional SctExtensionType type = 1;
+  optional sct_extension_data = 2 [ (tls_opts.min_length) = 0,
+                                    (tls_opts.max_length) = 65535 ];
+}
+
+message SignedCertificateTimestampV2 {
+  optional LogIDV2 id = 1;
+  // UTC time in milliseconds, since January 1, 1970, 00:00.
+  optional uint64 timestamp = 2;
+  repeated SctExtension extensions = 4;
+  optional DigitallySigned signature = 5;
+}
+
