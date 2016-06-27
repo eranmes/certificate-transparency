@@ -124,4 +124,3 @@ class InMemoryMerkleTree(object):
 
         return self._calculate_inclusion_proof(
                 self.__leaves[:tree_size], leaf_index)
-
