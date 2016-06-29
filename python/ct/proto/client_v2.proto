@@ -2,7 +2,7 @@
 
 syntax = "proto2";
 
-package ct_v2;
+package ct;
 
 import "ct/proto/client.proto";
 import "ct/proto/tls_options.proto";
@@ -17,20 +17,46 @@ message LogIDV2 {
 enum SctExtensionType {
   option (tls_enum_opts).max_value = 65535;
 
-  RESERVED=65535;
+  SCT_EXTENSION_RESERVED=65535;
 }
 
-message SctExtension {
+message SctExtensionV2 {
   optional SctExtensionType type = 1;
-  optional sct_extension_data = 2 [ (tls_opts.min_length) = 0,
-                                    (tls_opts.max_length) = 65535 ];
+  optional bytes sct_extension_data = 2 [(tls_opts).min_length = 1,
+                                      (tls_opts).max_length = 65535];
 }
 
-message SignedCertificateTimestampV2 {
+message SignedCertificateTimestampDataV2 {
   optional LogIDV2 id = 1;
   // UTC time in milliseconds, since January 1, 1970, 00:00.
   optional uint64 timestamp = 2;
-  repeated SctExtension extensions = 4;
+  repeated SctExtensionV2 extensions = 4;
   optional DigitallySigned signature = 5;
 }
 
+enum VersionedTransType {
+  option (tls_enum_opts).max_value = 65535;
+
+  RESERVED = 0;
+  X509_ENTRY_V2 = 1;
+  PRECERT_ENTRY_V2 = 2;
+  X509_SCT_V2 = 3;
+  PRECERT_SCT_V2 = 4;
+  TREE_HEAD_V2 = 5;
+  SIGNED_TREE_HEAD_V2 = 6;
+  CONSISTENCY_PROOF_V2 = 7;
+  INCLUSION_PROOF_V2 = 8;
+  X509_SCT_WITH_PROOF_V2 = 9;
+  PRECERT_SCT_WITH_PROOF_V2 = 10;
+}
+
+message TransItem {
+  optional VersionedTransType versioned_type = 1;
+  // 2 and 3 are reserved for x509_entry_v2, precert_entry_v2
+  optional SignedCertificateTimestampDataV2 x509_sct_v2 = 4
+      [(tls_opts).select_field = "versioned_type",
+       (tls_opts).select_value = 3];
+  optional SignedCertificateTimestampDataV2 precert_sct_v2 = 5
+      [(tls_opts).select_field = "versioned_type",
+       (tls_opts).select_value = 4];
+}
