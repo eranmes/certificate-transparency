@@ -19,5 +19,4 @@ class EcdsaSigner(object):
 
   def sign(self, data_to_sign):
     return self.__key.sign_deterministic(data_to_sign, hashfunc=hashlib.sha256, sigencode=ecdsa.util.sigencode_der)
-    #return self.__key.sign(data_to_sign, hashfunc=hashlib.sha256, sigencode=ecdsa.util.sigencode_der)
 
