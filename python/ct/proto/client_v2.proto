@@ -66,7 +66,8 @@ message SignedCertificateTimestampDataV2 {
 message TimestampedCertificateEntryDataV2 {
   optional uint64 timestamp = 1;
   optional bytes issuer_key_hash = 2 [
-    (tls_opts).fixed_length = 32];
+    (tls_opts).min_length = 32,
+    (tls_opts).max_length = 0xff];
   optional bytes tbs_certificate = 3 [
     (tls_opts).min_length = 1,
     (tls_opts).max_length = 0xffffff ];
@@ -91,7 +92,8 @@ message TreeHeadDataV2 {
   optional uint64 timestamp = 1;
   optional uint64 tree_size = 2;
   optional bytes root_hash = 3 [
-    (tls_opts).fixed_length = 32];
+    (tls_opts).min_length = 32,
+    (tls_opts).max_length = 0xff];
   optional SthExtension sth_extensions = 4 [
     (tls_opts).min_total_length = 0,
     (tls_opts).max_total_length = 0xffff];
@@ -99,14 +101,8 @@ message TreeHeadDataV2 {
 
 message SignedTreeHeadDataV2 {
   optional LogIDV2 log_id = 1;
-  optional uint64 timestamp = 2;
-  optional uint64 tree_size = 3;
-  optional bytes root_hash = 4 [
-    (tls_opts).fixed_length = 32];
-  optional SthExtension sth_extensions = 5 [
-    (tls_opts).min_total_length = 0,
-    (tls_opts).max_total_length = 0xffff];
-  optional DigitallySigned signature = 6;
+  optional TreeHeadDataV2 tree_head = 2;
+  optional DigitallySigned signature = 3;
 }
 
 message ConsistencyProofDataV2 {
@@ -114,9 +110,10 @@ message ConsistencyProofDataV2 {
   optional uint64 tree_size_1 = 2;
   optional uint64 tree_size_2 = 3;
   repeated bytes consistency_path = 4 [
-    (tls_opts).fixed_length = 32,
-    (tls_opts).min_total_length = 1,
-    (tls_opts).max_total_length = 255];
+    (tls_opts).min_length = 32,
+    (tls_opts).max_length = 0xff,
+    (tls_opts).min_total_length = 32,
+    (tls_opts).max_total_length = 0xffff];
 }
 
 message InclusionProofDataV2 {
@@ -124,9 +121,10 @@ message InclusionProofDataV2 {
   optional uint64 tree_size = 2;
   optional uint64 leaf_index = 3;
   repeated bytes inclusion_path = 4 [
-    (tls_opts).fixed_length = 32,
-    (tls_opts).min_total_length = 1,
-    (tls_opts).max_total_length = 255];
+    (tls_opts).min_length = 32,
+    (tls_opts).max_length = 0xff,
+    (tls_opts).min_total_length = 32,
+    (tls_opts).max_total_length = 0xffff];
 }
 
 message SCTWithProofDataV2 {
@@ -143,12 +141,11 @@ enum VersionedTransType {
   PRECERT_ENTRY_V2 = 2;
   X509_SCT_V2 = 3;
   PRECERT_SCT_V2 = 4;
-  TREE_HEAD_V2 = 5;
-  SIGNED_TREE_HEAD_V2 = 6;
-  CONSISTENCY_PROOF_V2 = 7;
-  INCLUSION_PROOF_V2 = 8;
-  X509_SCT_WITH_PROOF_V2 = 9;
-  PRECERT_SCT_WITH_PROOF_V2 = 10;
+  SIGNED_TREE_HEAD_V2 = 5;
+  CONSISTENCY_PROOF_V2 = 6;
+  INCLUSION_PROOF_V2 = 7;
+  X509_SCT_WITH_PROOF_V2 = 8;
+  PRECERT_SCT_WITH_PROOF_V2 = 9;
 }
 
 message TransItem {
@@ -165,22 +162,19 @@ message TransItem {
   optional SignedCertificateTimestampDataV2 precert_sct_v2 = 5
       [(tls_opts).select_field = "versioned_type",
        (tls_opts).select_value = 4];
-  optional TreeHeadDataV2 tree_head_v2 = 6
+  optional SignedTreeHeadDataV2 signed_tree_head_v2 = 6
       [(tls_opts).select_field = "versioned_type",
        (tls_opts).select_value = 5];
-  optional SignedTreeHeadDataV2 signed_tree_head_v2 = 7
+  optional ConsistencyProofDataV2 consistency_proof_v2 = 7
       [(tls_opts).select_field = "versioned_type",
        (tls_opts).select_value = 6];
-  optional ConsistencyProofDataV2 consistency_proof_v2 = 8
+  optional InclusionProofDataV2 inclusion_proof_v2 = 8
       [(tls_opts).select_field = "versioned_type",
        (tls_opts).select_value = 7];
-  optional InclusionProofDataV2 inclusion_proof_v2 = 9
+  optional SCTWithProofDataV2 x509_sct_with_proof_v2 = 9
       [(tls_opts).select_field = "versioned_type",
        (tls_opts).select_value = 8];
-  optional SCTWithProofDataV2 x509_sct_with_proof_v2 = 10
+  optional SCTWithProofDataV2 precert_sct_with_proof_v2 = 10
       [(tls_opts).select_field = "versioned_type",
        (tls_opts).select_value = 9];
-  optional SCTWithProofDataV2 precert_sct_with_proof_v2 = 11
-      [(tls_opts).select_field = "versioned_type",
-       (tls_opts).select_value = 10];
 }
