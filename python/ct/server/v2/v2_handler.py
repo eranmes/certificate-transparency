@@ -10,8 +10,12 @@ import ct.crypto.error
 from ct.crypto import cert
 from ct.serialization import tls_message
 
+def _GenerateErrorArray(error_code, error_message):
+  return {'error_code': error_code, 'error_message': error_message}
+
 LogHandlerResponse = collections.namedtuple(
-  'LogHandlerResponse', ['success', 'return_data', 'error_message'])
+  'LogHandlerResponse', ['success', 'return_data'])
+
 
 class LogHandler(object):
   def __init__(self, log_issuer):
@@ -19,51 +23,52 @@ class LogHandler(object):
 
   def _AddChain(self, req_data):
     if not req_data:
-      LogHandlerResponse(False, "bad chain", "No chain supplied.")
+      LogHandlerResponse(False, _GenerateErrorArray("bad chain", "No chain supplied."))
 
     try: 
       decoded_data = simplejson.loads(req_data)
     except simplejson.JSONDecodeError:
-      return LogHandlerResponse(False, "bad chain", "Failed decoding chain json.")
+      return LogHandlerResponse(False,
+        _GenerateErrorArray("bad chain", "Failed decoding chain json."))
 
     if 'chain' not in decoded_data:
-      return LogHandlerResponse(False, "bad chain", "chain parameter not found.")
+      return LogHandlerResponse(False,
+        _GenerateErrorArray("bad chain", "chain parameter not found."))
 
     encoded_certs = decoded_data['chain']
-    print 'xxx',encoded_certs
     certs = []
     try:
       for b64_cert in encoded_certs:
-        print 'cert b64 -%s-' % b64_cert.encode('hex')
         cert_bytes = base64.decodestring(b64_cert)
-        print 'Now creating Certificate object.'
         certs.append(cert.Certificate.from_der(cert_bytes))
-        print 'Cert created ok.'
     except binascii.Error as e:
-      print 'binascii error caught:', e
-      return LogHandlerResponse(False, "bad certificate", "Failed to decode a certificate.")
+      return LogHandlerResponse(False,
+        _GenerateErrorArray("bad certificate", "Failed to decode a certificate."))
     except ct.crypto.error.ASN1Error:
-      return LogHandlerResponse(False, "bad certificate", "Bad ASN.1")
+      return LogHandlerResponse(False,
+        _GenerateErrorArray("bad certificate", "Bad ASN.1"))
 
-    trans_item, _ = self._log_issuer.issue_x509_cert_sct(certs[0], certs[1:])
-    return LogHandlerResponse(True, tls_message.encode(trans_item), None)
+    trans_item = self._log_issuer.issue_x509_cert_sct(certs[0], certs[1:])
+    return LogHandlerResponse(True, {'sct': base64.b64encode(tls_message.encode(trans_item))})
+
+  def _GetSth(self):
+    sth = self._log_issuer.get_sth()
+    return LogHandlerResponse(True, {'sth': base64.b64encode(tls_message.encode(sth))})
 
   def HandleRequest(self, req_endpoint, req_data = None):
     if req_endpoint == 'add-chain':
       return self._AddChain(req_data)
-    return LogHandlerResponse(False, "not compliant", "Unknown request: %s" % req_endpoint)
+    if req_endpoint == 'get-sth':
+      return self._GetSth()
+    return LogHandlerResponse(False,
+      _GenerateErrorArray("not compliant", "Unknown request: %s" % req_endpoint))
 
 def InterpretHandlerResponse(handler_response):
   if handler_response.success:
     return_http_code = 200
-    return_json = {'sct': base64.b64encode(handler_response.return_data)}
   else:
     return_http_code = 400
-    return_json = {
-        'error_code': handler_response.return_data,
-        'error_message': handler_response.error_message
-        }
-  return (return_http_code, simplejson.dumps(return_json))
+  return (return_http_code, simplejson.dumps(handler_response.return_data))
 
 class V2Handler(BaseHTTPServer.BaseHTTPRequestHandler):
   _log_prefix = '/ct/v2/'

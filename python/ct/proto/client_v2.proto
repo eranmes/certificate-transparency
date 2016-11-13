@@ -84,7 +84,7 @@ enum SthExtensionType {
 
 message SthExtension {
   optional SthExtensionType type = 1;
-  optional bytes sth_extension_data = 2 [(tls_opts).min_length = 1,
+  optional bytes sth_extension_data = 2 [(tls_opts).min_length = 0,
                                       (tls_opts).max_length = 65535];
 }
 
@@ -94,7 +94,7 @@ message TreeHeadDataV2 {
   optional bytes root_hash = 3 [
     (tls_opts).min_length = 32,
     (tls_opts).max_length = 0xff];
-  optional SthExtension sth_extensions = 4 [
+  repeated SthExtension sth_extensions = 4 [
     (tls_opts).min_total_length = 0,
     (tls_opts).max_total_length = 0xffff];
 }
