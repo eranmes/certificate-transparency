@@ -1,4 +1,4 @@
-from ct.crypto import asn1
+from ct.crypto.asn1 import oid
 from ct.serialization import tls_message
 from ct.proto import client_v2_pb2
 
@@ -21,8 +21,8 @@ def _create_x509_entrydata(leaf_cert, certificate_chain):
   return ts_entry_data
 
 def _log_id_string_to_oid_bytes(log_id_string):
-  oid = asn1.oid.ObjectIdentifier(log_id_string)
-  return oid.encode()[1:]
+  o = oid.ObjectIdentifier(log_id_string)
+  return o.encode()[1:]
 
 
 class LogIssuer(object):
