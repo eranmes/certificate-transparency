@@ -17,7 +17,7 @@ def _create_x509_entrydata(leaf_cert, certificate_chain):
 
   issuer_key_hash = _extract_issuer_key_hash(issuer_cert)
   ts_entry_data = client_v2_pb2.TimestampedCertificateEntryDataV2()
-  ts_entry_data.timestamp = int(time.time() * 1000)
+  #ts_entry_data.timestamp = int(time.time() * 1000)
   ts_entry_data.issuer_key_hash = issuer_key_hash
   ts_entry_data.tbs_certificate = leaf_cert.get_tbscertificate().encode();
   return ts_entry_data
@@ -25,7 +25,6 @@ def _create_x509_entrydata(leaf_cert, certificate_chain):
 def _log_id_string_to_oid_bytes(log_id_string):
   o = oid.ObjectIdentifier(log_id_string)
   return o.encode()[1:]
-
 
 class LogIssuer(object):
   """Produces SCTs."""
@@ -42,10 +41,21 @@ class LogIssuer(object):
     self.__log_id.log_id = _log_id_string_to_oid_bytes(log_id)
     self.__hasher = merkle.TreeHasher()
     self.__entries = []
+    self.__unique_entries = {}
 
+  def _get_or_generate_timestamp(self, ts_entry):
+    ts_entry_bytes = tls_message.encode(ts_entry)
+    new_entry = False
+    if ts_entry_bytes not in self.__unique_entries:
+      new_entry = True
+      self.__unique_entries[ts_entry_bytes] = int(time.time() * 1000)
+    return (new_entry, self.__unique_entries[ts_entry_bytes])
 
   def issue_x509_cert_sct(self, leaf_cert, certificate_chain):
     ts_entry_data = _create_x509_entrydata(leaf_cert, certificate_chain)
+    (new_entry, entry_timestamp) = self._get_or_generate_timestamp(ts_entry_data)
+    ts_entry_data.timestamp = entry_timestamp
+
     x509_sct = client_v2_pb2.SignedCertificateTimestampDataV2()
     x509_sct.id.MergeFrom(self.__log_id)
     x509_sct.timestamp = ts_entry_data.timestamp
@@ -61,7 +71,8 @@ class LogIssuer(object):
     trans_item_for_sct.versioned_type = client_v2_pb2.X509_SCT_V2
     trans_item_for_sct.x509_sct_v2.CopyFrom(x509_sct)
     # Add entry to __entries
-    self.__entries.append(trans_item_for_ts_entry)
+    if new_entry:
+      self.__entries.append(trans_item_for_ts_entry)
 
     return trans_item_for_sct
 
