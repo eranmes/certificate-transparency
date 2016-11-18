@@ -3,7 +3,7 @@
 import BaseHTTPServer
 
 from ct.crypto.v2 import log_issuer, signer_ecdsa
-from ct.server.v2 import v2_handler
+from ct.log.v2 import v2_handler
 
 if __name__ == '__main__':
   server_address = ('', 8000)
