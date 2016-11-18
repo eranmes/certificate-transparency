@@ -3,7 +3,7 @@
 import BaseHTTPServer
 
 from ct.crypto.signing import signer_ecdsa
-from ct.crypto.v2 import log_issuer
+from ct.log.v2 import log_issuer
 from ct.log.v2.frontend import v2_handler
 
 if __name__ == '__main__':
