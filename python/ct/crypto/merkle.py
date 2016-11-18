@@ -24,6 +24,7 @@ Benchmark sample code:
 
 import hashlib
 import logging
+import math
 
 from ct.crypto import error
 
@@ -46,6 +47,13 @@ def lowest_bit_set(i):
         lowBit += 1
     return lowBit
 
+
+def _nearest_power_of_2(n):
+    log_n = math.log(n, 2)
+    p = int(log_n)
+    if p == log_n:
+      p = p - 1
+    return 2**p
 
 class TreeHasher(object):
     """Merkle hasher with domain separation for leaves and nodes."""
@@ -118,6 +126,72 @@ class TreeHasher(object):
         for cur in rev_hashes:
             accum = self.hash_children(cur, accum)
         return accum
+
+class InMemoryMerkleTree(object):
+  def __init__(self, leaves):
+    self.__leaves = list(leaves)
+    self.__hasher = TreeHasher()
+
+  """Adds |leaf_data|, returning the index of the entry."""
+  def add_leaf(self, leaf_data):
+    self.__leaves.append(leaf_data)
+    return len(self.__leaves) - 1
+
+  def _hashed_leaves(self):
+    return [self.__hasher.hash_leaf(t) for t in self.__leaves]
+
+  def tree_size(self):
+    return len(self.__leaves)
+
+  def get_root_hash(self, tree_size = None):
+    if not tree_size:
+      tree_size = self.tree_size()
+    return self.__hasher.hash_full_tree(self.__leaves[:tree_size])
+
+  def get_leaf_index(self, leaf_hash):
+    leaf_hashes = [self.__hasher.hash_leaf(t) for t in self.__leaves]
+    try:
+      return self._hashed_leaves().index(leaf_hash)
+    except ValueError as e:
+      return -1
+
+  def get_consistency_proof(self, tree_size_1, tree_size_2):
+    if tree_size_1 >= tree_size_2:
+      raise ValueError("tree_size_1 must be less than tree_size_2")
+
+    if tree_size_1 > self.tree_size() or tree_size_2 > self.tree_size():
+      raise ValueError("Requested proof for sizes beyond current tree:" 
+          " current tree: %d tree_size_1 %d tree_size_2 %d" % (
+            self.tree_size(), tree_size_1, tree_size_2))
+
+    raise Exception("Not implemented yet.")
+
+  def _calculate_inclusion_proof(self, leaves, leaf_index):
+    n = len(leaves)
+    if n == 0 or n == 1:
+      return []
+
+    k = _nearest_power_of_2(n)
+    m = leaf_index
+    if m < k:
+      mth_k_to_n = self.__hasher.hash_full_tree(leaves[k:n])
+      path = self._calculate_inclusion_proof(leaves[0:k], m)
+      path.append(mth_k_to_n)
+    else:
+      mth_0_to_k = self.__hasher.hash_full_tree(leaves[0:k])
+      path = self._calculate_inclusion_proof(leaves[k:n], m - k)
+      path.append(mth_0_to_k)
+    return path
+
+  def get_inclusion_proof(self, leaf_index, tree_size):
+    if tree_size > self.tree_size():
+      raise ValueError("Specified tree size is bigger than known tree: %d" %
+          tree_size)
+    if leaf_index >= self.tree_size():
+      raise ValueError("Requested proof for leaf beyond tree size: %d" %
+          leaf_index)
+
+    return self._calculate_inclusion_proof(self.__leaves[:tree_size], leaf_index)
 
 
 class CompactMerkleTree(object):
